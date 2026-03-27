@@ -1,5 +1,19 @@
 from dataclasses import dataclass, field
 import os
+from pathlib import Path
+
+def _load_env_file(env_file: Path) -> None:
+    if not env_file.exists():
+        return
+    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("'").strip('"')
+        if key:
+            os.environ.setdefault(key, value)
 
 
 @dataclass
@@ -18,6 +32,9 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        project_root = Path(__file__).resolve().parents[3]
+        _load_env_file(project_root / ".env")
+
         provider = os.getenv("MINIBOT_LLM_PROVIDER", "deepseek").lower()
         if provider == "ollama":
             model = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
